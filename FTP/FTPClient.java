@@ -87,6 +87,8 @@ public class FTPClient {
             request = new DatagramPacket(buffer, buffer.length, address, FTPServer.PORT);
             socket.send(request);
 
+            // TODO Recibir Hash del servidor y calcular Hash
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
