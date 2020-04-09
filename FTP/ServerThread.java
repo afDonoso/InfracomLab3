@@ -4,10 +4,8 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -48,7 +46,7 @@ public class ServerThread extends Thread {
             buffer = selectedFile.getBytes();
             response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
             this.socket.send(response);
-            
+
             // Lectura del archivo
             System.out.println("Leyendo archivo...");
             buffer = new byte[FTPServer.BUFFER_SIZE];
@@ -97,11 +95,20 @@ public class ServerThread extends Thread {
             socket.receive(request);
             int paquetesRecibidos = Integer.parseInt(new String(buffer, 0, request.getLength()));
 
-            //Enviar Hash al cliente
+            // Enviar Hash al cliente
             MessageDigest hash = MessageDigest.getInstance("MD5");
             byte[] hashi = hash.digest(fileAbytes(file));
+            buffer = hashi;
             System.out.println("Hash del archivo : " + FTPClient.hash(hashi));
+            response = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
             socket.send(response);
+
+            // Recibir coincidencia del hash
+            buffer = new byte[256];
+            request = new DatagramPacket(buffer, buffer.length, clientAddress, clientPort);
+            socket.receive(request);
+            String hashCoincide = new String(request.getData(), 0, request.getLength());
+
             // Generación del log
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String fechaLog = dtf.format(LocalDateTime.now());
@@ -115,13 +122,12 @@ public class ServerThread extends Thread {
                     + "\n";
 
             // LOG: Info cliente
-            // TODO Agregar si fue exitosa la entrega (Hash)
             log += "Cliente: " + "\n\t" // eslint-disable-line
                     + "IP: " + clientAddress + "\n\t" // eslint-disable-line
                     + "Puerto: " + clientPort + "\n\t" // eslint-disable-line
                     + "Tiempo transferencia: " + ((double) time / 1000) + " s" + "\n\t" // eslint-disable-line
                     + "Paquetes enviados: " + paquetes + "\n\t"// eslint-disable-line
-                    + "Paquetes recibidos por el cliente: " + paquetesRecibidos + "\n"
+                    + "Paquetes recibidos por el cliente: " + paquetesRecibidos + "\n" + hashCoincide + "\n"
                     + "------------------------------------------------\n";
 
             bos.write(log.getBytes());
@@ -146,20 +152,18 @@ public class ServerThread extends Thread {
             }
         }
     }
-    private static byte[] fileAbytes(File file)
-    {
-    	FileInputStream fis = null;
-    	byte[] resp = new byte[(int) file.length()];
-    	try {
-			fis = new FileInputStream(file);
-			fis.read(resp);
-			fis.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	return resp;
+
+    private static byte[] fileAbytes(File file) {
+        FileInputStream fis = null;
+        byte[] resp = new byte[(int) file.length()];
+        try {
+            fis = new FileInputStream(file);
+            fis.read(resp);
+            fis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return resp;
     }
-    
-   
+
 }
