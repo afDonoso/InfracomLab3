@@ -91,18 +91,27 @@ public class FTPClient {
             request = new DatagramPacket(buffer, buffer.length, address, FTPServer.PORT);
             socket.send(request);
 
-            // TODO Recibir Hash del servidor y calcular Hash
+            // Recibir hash y calcular hash
+            buffer = new byte[512];
+            response = new DatagramPacket(buffer, buffer.length, address, FTPServer.PORT);
             socket.receive(response);
-            String hash = new String(response.getData());
+            String hash = hash((new String(response.getData(), 0, response.getLength()).getBytes()));
             System.out.println("Se recibio el hash del archivo con valor " + hash);
             MessageDigest hashi = MessageDigest.getInstance("MD5");
             byte[] hasho = hashi.digest(fileAbytes(file));
             String comparar = hash(hasho);
             System.out.println("Hash del archivo : " + comparar);
-            if( hash.equals(comparar))
-            	System.out.println("El hash enviado coincide con el calculado");
+            String mensaje = "";
+            if (hash.equals(comparar))
+                mensaje = "El hash enviado coincide con el calculado";
             else
-            	System.out.println("El hash enviado NO coincide con el calculado");
+                mensaje = "El hash enviado NO coincide con el calculado";
+
+            // Enviar coincidencia del hash
+            buffer = mensaje.getBytes();
+            request = new DatagramPacket(buffer, buffer.length, address, FTPServer.PORT);
+            socket.send(request);
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -121,27 +130,26 @@ public class FTPClient {
             }
         }
     }
-    private static byte[] fileAbytes(File file)
-    {
-    	FileInputStream fis = null;
-    	byte[] resp = new byte[(int) file.length()];
-    	try {
-			fis = new FileInputStream(file);
-			fis.read(resp);
-			fis.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	return resp;
+
+    private static byte[] fileAbytes(File file) {
+        FileInputStream fis = null;
+        byte[] resp = new byte[(int) file.length()];
+        try {
+            fis = new FileInputStream(file);
+            fis.read(resp);
+            fis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return resp;
     }
-    public static String hash(byte[] bytes)
-    {
-    	BigInteger numero = new BigInteger(1,bytes);
-    	StringBuilder cadena = new StringBuilder(numero.toString(16));
-    	
-    	while(cadena.length() < 32)
-    		cadena.insert(0, '0');
-    	return cadena.toString();
+
+    public static String hash(byte[] bytes) {
+        BigInteger numero = new BigInteger(1, bytes);
+        StringBuilder cadena = new StringBuilder(numero.toString(16));
+
+        while (cadena.length() < 32)
+            cadena.insert(0, '0');
+        return cadena.toString();
     }
 }
