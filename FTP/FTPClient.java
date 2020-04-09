@@ -2,10 +2,14 @@ package FTP;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.security.MessageDigest;
 import java.util.Scanner;
 
 public class FTPClient {
@@ -88,7 +92,17 @@ public class FTPClient {
             socket.send(request);
 
             // TODO Recibir Hash del servidor y calcular Hash
-
+            socket.receive(response);
+            String hash = new String(response.getData());
+            System.out.println("Se recibio el hash del archivo con valor " + hash);
+            MessageDigest hashi = MessageDigest.getInstance("MD5");
+            byte[] hasho = hashi.digest(fileAbytes(file));
+            String comparar = hash(hasho);
+            System.out.println("Hash del archivo : " + comparar);
+            if( hash.equals(comparar))
+            	System.out.println("El hash enviado coincide con el calculado");
+            else
+            	System.out.println("El hash enviado NO coincide con el calculado");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -106,5 +120,28 @@ public class FTPClient {
                 }
             }
         }
+    }
+    private static byte[] fileAbytes(File file)
+    {
+    	FileInputStream fis = null;
+    	byte[] resp = new byte[(int) file.length()];
+    	try {
+			fis = new FileInputStream(file);
+			fis.read(resp);
+			fis.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return resp;
+    }
+    public static String hash(byte[] bytes)
+    {
+    	BigInteger numero = new BigInteger(1,bytes);
+    	StringBuilder cadena = new StringBuilder(numero.toString(16));
+    	
+    	while(cadena.length() < 32)
+    		cadena.insert(0, '0');
+    	return cadena.toString();
     }
 }
